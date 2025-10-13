@@ -2,7 +2,7 @@ class Matchy < Formula
   desc "Fast database for IP address and string matching with rich data storage"
   homepage "https://github.com/sethhall/matchy"
   url "https://github.com/sethhall/matchy/archive/refs/tags/v0.5.2.tar.gz"
-  sha256 "" # TODO: Calculate after creating release
+  sha256 "e4f4ecd0ddba8eb99693a3972259bf2a1f577de3f2dc214484efd036823d9e49"
   license "BSD-2-Clause"
   head "https://github.com/sethhall/matchy.git", branch: "main"
 
@@ -15,9 +15,8 @@ class Matchy < Formula
 
     # Build the C library using cargo-c
     # First check if cargo-c is installed, if not install it
-    unless system "cargo", "install", "--list" do |output|
-      output.include?("cargo-capi") || output.include?("cargo-c")
-    end
+    cargo_list = `cargo install --list`
+    unless cargo_list.include?("cargo-capi") || cargo_list.include?("cargo-c")
       system "cargo", "install", "cargo-c"
     end
 
