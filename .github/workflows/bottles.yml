@@ -84,16 +84,16 @@ jobs:
           
           # Create proper Homebrew install receipt
           mkdir -p "$PREFIX/.brew"
-          cat > "$PREFIX/.brew/matchy.rb" << 'EOF'
-class Matchy < Formula
-  desc "Fast database for IP address and string matching with rich data storage"
-  homepage "https://github.com/sethhall/matchy"
-  url "https://github.com/sethhall/matchy/archive/refs/tags/${{ github.event.inputs.version }}.tar.gz"
-end
-EOF
+          cat > "$PREFIX/.brew/matchy.rb" <<'FORMULA'
+          class Matchy < Formula
+            desc "Fast database for IP address and string matching with rich data storage"
+            homepage "https://github.com/sethhall/matchy"
+            url "https://github.com/sethhall/matchy/archive/refs/tags/${{ github.event.inputs.version }}.tar.gz"
+          end
+          FORMULA
           
           # Write install receipt metadata
-          cat > "$PREFIX/INSTALL_RECEIPT.json" << EOF
+          cat > "$PREFIX/INSTALL_RECEIPT.json" <<RECEIPT
 {
   "homebrew_version": "$(brew --version | head -1)",
   "used_options": [],
@@ -123,7 +123,7 @@ EOF
     "cpu_family": "$(uname -m)"
   }
 }
-EOF
+RECEIPT
           
           # Link to Homebrew
           brew link matchy
