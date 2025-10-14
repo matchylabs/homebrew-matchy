@@ -1,0 +1,195 @@
+name: Build Bottles
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.5.2)'
+        required: true
+        type: string
+
+jobs:
+  build-bottles:
+    name: Build bottle for ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          # macOS Apple Silicon
+          - os: macos-15
+            runner: macos-15
+            arch: arm64
+          # macOS Intel
+          - os: macos-13
+            runner: macos-13
+            arch: x86_64
+          # Linux
+          - os: ubuntu-latest
+            runner: ubuntu-latest
+            arch: x86_64
+
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Install Rust (for building)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Update formula URL to use the specified version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          # Update the URL in the formula to point to the release tag
+          sed -i.bak "s|archive/refs/tags/v[0-9.]*\.tar\.gz|archive/refs/tags/${VERSION}.tar.gz|" Formula/matchy.rb
+          
+          # Download and calculate SHA256 for the source tarball
+          echo "Downloading source tarball..."
+          curl -sL "https://github.com/sethhall/matchy/archive/refs/tags/${VERSION}.tar.gz" -o source.tar.gz
+          NEW_SHA256=$(shasum -a 256 source.tar.gz | awk '{print $1}')
+          echo "New SHA256: $NEW_SHA256"
+          
+          # Update SHA256 in formula
+          sed -i.bak "s/sha256 \"[a-f0-9]*\"/sha256 \"${NEW_SHA256}\"/" Formula/matchy.rb
+          
+          rm -f Formula/matchy.rb.bak source.tar.gz
+          
+          echo "Updated formula:"
+          head -10 Formula/matchy.rb
+
+      - name: Build bottle
+        run: |
+          # Uninstall if already present
+          brew uninstall matchy 2>/dev/null || true
+          
+          # Install with bottle building enabled
+          brew install --build-bottle Formula/matchy.rb
+          
+          # Generate the bottle
+          brew bottle --no-rebuild --json Formula/matchy.rb
+
+      - name: Upload bottle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottles-${{ matrix.os }}
+          path: |
+            *.bottle.tar.gz
+            *.bottle.json
+          retention-days: 7
+
+  upload-bottles:
+    name: Upload bottles to GitHub Release
+    needs: build-bottles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+
+      - name: Download all bottle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bottles
+
+      - name: List downloaded bottles
+        run: |
+          echo "Downloaded bottles:"
+          find bottles -type f -name "*.bottle.tar.gz" -o -name "*.bottle.json"
+
+      - name: Move bottles to current directory
+        run: |
+          find bottles -type f \( -name "*.bottle.tar.gz" -o -name "*.bottle.json" \) -exec mv {} . \;
+          ls -lh *.bottle.*
+
+      - name: Extract bottle metadata
+        id: bottle-info
+        run: |
+          echo "Extracting SHA256 hashes from bottle JSON files..."
+          
+          # Initialize bottle block
+          echo 'BOTTLE_BLOCK<<EOF' >> $GITHUB_OUTPUT
+          echo '  bottle do' >> $GITHUB_OUTPUT
+          echo '    root_url "https://github.com/sethhall/homebrew-matchy/releases/download/${{ github.event.inputs.version }}"' >> $GITHUB_OUTPUT
+          
+          # Process each JSON file
+          for json_file in *.bottle.json; do
+            if [ -f "$json_file" ]; then
+              echo "Processing $json_file..."
+              
+              # Extract platform and SHA256 from JSON
+              PLATFORM=$(jq -r 'keys[0] as $formula | .[$formula].bottle.tags | keys[0]' "$json_file")
+              SHA256=$(jq -r 'keys[0] as $formula | .[$formula].bottle.tags[.[$formula].bottle.tags | keys[0]].sha256' "$json_file")
+              
+              echo "    sha256 cellar: :any, ${PLATFORM}: \"${SHA256}\"" >> $GITHUB_OUTPUT
+              echo "  Platform: $PLATFORM, SHA256: $SHA256"
+            fi
+          done
+          
+          echo '  end' >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: Update formula with bottle information
+        run: |
+          # Check if bottle block already exists
+          if grep -q "^  bottle do" Formula/matchy.rb; then
+            echo "Removing existing bottle block..."
+            # Remove existing bottle block
+            sed -i '/^  bottle do/,/^  end/d' Formula/matchy.rb
+          fi
+          
+          # Insert new bottle block after the head line
+          awk -v bottle="${{ steps.bottle-info.outputs.BOTTLE_BLOCK }}" '
+            /^  head / {
+              print $0
+              print ""
+              print bottle
+              next
+            }
+            { print }
+          ' Formula/matchy.rb > Formula/matchy.rb.new
+          
+          mv Formula/matchy.rb.new Formula/matchy.rb
+          
+          echo "Updated formula with bottle information:"
+          cat Formula/matchy.rb
+
+      - name: Create or update release with bottles
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          echo "Uploading bottles to tap repo release ${VERSION}..."
+          
+          # Create release if it doesn't exist
+          if ! gh release view "${VERSION}" 2>/dev/null; then
+            echo "Creating release ${VERSION}..."
+            gh release create "${VERSION}" \
+              --title "${VERSION}" \
+              --notes "Bottles for Matchy ${VERSION}"
+          fi
+          
+          # Upload all bottle files
+          for bottle in *.bottle.tar.gz; do
+            if [ -f "$bottle" ]; then
+              echo "Uploading $bottle..."
+              gh release upload "${VERSION}" "$bottle" --clobber
+            fi
+          done
+
+      - name: Commit updated formula
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add Formula/matchy.rb
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add bottles for ${{ github.event.inputs.version }}"
+            git push
+          fi
