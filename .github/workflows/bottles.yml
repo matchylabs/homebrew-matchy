@@ -71,8 +71,9 @@ jobs:
           # Uninstall if already present
           brew uninstall matchy 2>/dev/null || true
           
-          # Install with bottle building enabled, allow building deps from source
-          brew install --build-bottle --build-from-source sethhall/matchy/matchy
+          # Install with bottle building - skip installing dependencies since we have Rust from the action
+          brew install --build-bottle --only-dependencies sethhall/matchy/matchy || true
+          brew install --build-bottle --ignore-dependencies sethhall/matchy/matchy
           
           # Generate the bottle using tap syntax
           brew bottle --no-rebuild --json sethhall/matchy/matchy
