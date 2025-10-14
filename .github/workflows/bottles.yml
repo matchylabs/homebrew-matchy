@@ -35,6 +35,11 @@ jobs:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
+      - name: Tap the repository
+        run: |
+          # Tap this repository so Homebrew recognizes it as a proper tap
+          brew tap sethhall/matchy ${{ github.workspace }}
+
       - name: Install Rust (for building)
         uses: dtolnay/rust-toolchain@stable
 
@@ -63,11 +68,11 @@ jobs:
           # Uninstall if already present
           brew uninstall matchy 2>/dev/null || true
           
-          # Install with bottle building enabled
-          brew install --build-bottle Formula/matchy.rb
+          # Install with bottle building enabled using tap syntax
+          brew install --build-bottle sethhall/matchy/matchy
           
-          # Generate the bottle
-          brew bottle --no-rebuild --json Formula/matchy.rb
+          # Generate the bottle using tap syntax
+          brew bottle --no-rebuild --json sethhall/matchy/matchy
 
       - name: Upload bottle artifact
         uses: actions/upload-artifact@v4
