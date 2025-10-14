@@ -20,8 +20,8 @@ jobs:
             runner: macos-15
             arch: arm64
           # macOS Intel
-          - os: macos-13
-            runner: macos-13
+          - os: macos-14
+            runner: macos-14-large
             arch: x86_64
           # Linux
           - os: ubuntu-latest
@@ -65,12 +65,14 @@ jobs:
           head -10 Formula/matchy.rb
 
       - name: Build bottle
+        env:
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
         run: |
           # Uninstall if already present
           brew uninstall matchy 2>/dev/null || true
           
-          # Install with bottle building enabled using tap syntax
-          brew install --build-bottle sethhall/matchy/matchy
+          # Install with bottle building enabled, allow building deps from source
+          brew install --build-bottle --build-from-source sethhall/matchy/matchy
           
           # Generate the bottle using tap syntax
           brew bottle --no-rebuild --json sethhall/matchy/matchy
