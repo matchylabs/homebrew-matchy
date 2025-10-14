@@ -10,8 +10,11 @@ class Matchy < Formula
   depends_on "cbindgen" => :build
 
   def install
-    # Build the Rust library and binaries
+    # Build the Rust library and CLI tool
     system "cargo", "install", *std_cargo_args
+
+    # Only build C library if not building a bottle (cargo-c has complex dependencies)
+    return if build.bottle?
 
     # Build the C library using cargo-c
     # First check if cargo-c is installed, if not install it
@@ -21,7 +24,7 @@ class Matchy < Formula
     end
 
     # Install C library and headers using cargo-c
-    system "cargo", "cinstall", "--release", 
+    system "cargo", "cinstall", "--release",
            "--prefix", prefix,
            "--libdir", lib,
            "--includedir", include
