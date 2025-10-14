@@ -33,12 +33,6 @@ jobs:
           brew untap sethhall/matchy 2>/dev/null || true
           brew tap sethhall/matchy ${{ github.workspace }}
 
-      - name: Install Rust (for building)
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-c for C library building
-        run: |
-          cargo install cargo-c
 
       - name: Update formula URL to use the specified version
         run: |
@@ -60,51 +54,11 @@ jobs:
           echo "Updated formula:"
           head -10 Formula/matchy.rb
 
-      - name: Build matchy manually
+      - name: Build bottle
         run: |
-          # Build matchy using our Rust from the action, not Homebrew's
-          cd $(brew --repository)/Library/Taps/sethhall/homebrew-matchy
-          
-          VERSION="${{ github.event.inputs.version }}"
-          VERSION_NUM="${VERSION#v}"
-          
-          # Download and extract source
-          curl -sL "https://github.com/sethhall/matchy/archive/refs/tags/${VERSION}.tar.gz" | tar xz
-          cd "matchy-${VERSION_NUM}"
-          
-          # Set installation prefix
-          PREFIX="$(brew --prefix)/Cellar/matchy/${VERSION_NUM}"
-          mkdir -p "$PREFIX"
-          
-          # Build CLI and Rust library
-          cargo install --locked --path . --root "$PREFIX"
-          
-          # Build C library with cargo-c
-          cargo cinstall --release --prefix "$PREFIX" --libdir "$PREFIX/lib" --includedir "$PREFIX/include"
-          
-          # Create proper Homebrew install receipt
-          mkdir -p "$PREFIX/.brew"
-          echo "class Matchy < Formula" > "$PREFIX/.brew/matchy.rb"
-          echo '  desc "Fast database for IP address and string matching with rich data storage"' >> "$PREFIX/.brew/matchy.rb"
-          echo '  homepage "https://github.com/sethhall/matchy"' >> "$PREFIX/.brew/matchy.rb"
-          echo "  url \"https://github.com/sethhall/matchy/archive/refs/tags/${{ github.event.inputs.version }}.tar.gz\"" >> "$PREFIX/.brew/matchy.rb"
-          echo "end" >> "$PREFIX/.brew/matchy.rb"
-          
-          # Write install receipt metadata using jq to avoid YAML conflicts
-          brew --version | head -1 > /tmp/brew_version.txt
-          jq -n \
-            --arg brew_ver "$(cat /tmp/brew_version.txt)" \
-            --arg version "${VERSION_NUM}" \
-            --arg time "$(date +%s)" \
-            --arg arch "$(uname -m)" \
-            --arg os "$(uname -s)" \
-            --arg os_ver "$(uname -r)" \
-            --arg path "$(brew --repository)/Library/Taps/sethhall/homebrew-matchy/Formula/matchy.rb" \
-            '{homebrew_version: $brew_ver, used_options: [], unused_options: [], built_as_bottle: false, poured_from_bottle: false, installed_as_dependency: false, installed_on_request: true, changed_files: [], time: ($time | tonumber), source_modified_time: 0, compiler: "clang", aliases: [], source: {tap: "sethhall/matchy", spec: "stable", versions: {stable: $version, version_scheme: 0}, path: $path}, arch: $arch, built_on: {os: $os, os_version: $os_ver, cpu_family: $arch}}' \
-            > "$PREFIX/INSTALL_RECEIPT.json"
-          
-          # Link to Homebrew
-          brew link matchy
+          # Just use normal brew install with bottle building
+          # Homebrew will download Rust bottles (fast), not build from source
+          brew install --build-bottle sethhall/matchy/matchy
 
       - name: Generate bottle
         run: |
