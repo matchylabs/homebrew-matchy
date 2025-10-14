@@ -82,9 +82,48 @@ jobs:
           # Build C library with cargo-c
           cargo cinstall --release --prefix "$PREFIX" --libdir "$PREFIX/lib" --includedir "$PREFIX/include"
           
-          # Create Homebrew receipt so it knows the package is installed
+          # Create proper Homebrew install receipt
           mkdir -p "$PREFIX/.brew"
-          echo "$VERSION_NUM" > "$PREFIX/.brew/matchy.rb"
+          cat > "$PREFIX/.brew/matchy.rb" << 'EOF'
+class Matchy < Formula
+  desc "Fast database for IP address and string matching with rich data storage"
+  homepage "https://github.com/sethhall/matchy"
+  url "https://github.com/sethhall/matchy/archive/refs/tags/${{ github.event.inputs.version }}.tar.gz"
+end
+EOF
+          
+          # Write install receipt metadata
+          cat > "$PREFIX/INSTALL_RECEIPT.json" << EOF
+{
+  "homebrew_version": "$(brew --version | head -1)",
+  "used_options": [],
+  "unused_options": [],
+  "built_as_bottle": false,
+  "poured_from_bottle": false,
+  "installed_as_dependency": false,
+  "installed_on_request": true,
+  "changed_files": [],
+  "time": $(date +%s),
+  "source_modified_time": 0,
+  "compiler": "clang",
+  "aliases": [],
+  "source": {
+    "tap": "sethhall/matchy",
+    "spec": "stable",
+    "versions": {
+      "stable": "${VERSION_NUM}",
+      "version_scheme": 0
+    },
+    "path": "$(brew --repository)/Library/Taps/sethhall/homebrew-matchy/Formula/matchy.rb"
+  },
+  "arch": "$(uname -m)",
+  "built_on": {
+    "os": "$(uname -s)",
+    "os_version": "$(uname -r)",
+    "cpu_family": "$(uname -m)"
+  }
+}
+EOF
           
           # Link to Homebrew
           brew link matchy
