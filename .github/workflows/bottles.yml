@@ -44,6 +44,10 @@ jobs:
       - name: Install Rust (for building)
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install cargo-c for C library building
+        run: |
+          cargo install cargo-c
+
       - name: Update formula URL to use the specified version
         run: |
           VERSION="${{ github.event.inputs.version }}"
@@ -64,28 +68,38 @@ jobs:
           echo "Updated formula:"
           head -10 Formula/matchy.rb
 
-      - name: Build bottle
-        env:
-          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      - name: Build matchy manually
         run: |
-          # Debug: Check which rust/cargo we're using
-          echo "Rust from action:"
-          which cargo rustc
-          cargo --version
-          rustc --version
+          # Build matchy using our Rust from the action, not Homebrew's
+          cd $(brew --repository)/Library/Taps/sethhall/homebrew-matchy
           
-          # Uninstall if already present
-          brew uninstall matchy 2>/dev/null || true
+          VERSION="${{ github.event.inputs.version }}"
+          VERSION_NUM="${VERSION#v}"
           
-          # Install with bottle building - skip installing dependencies since we have Rust from the action
-          brew install --build-bottle --only-dependencies sethhall/matchy/matchy || true
+          # Download and extract source
+          curl -sL "https://github.com/sethhall/matchy/archive/refs/tags/${VERSION}.tar.gz" | tar xz
+          cd "matchy-${VERSION_NUM}"
           
-          echo "After deps install:"
-          which cargo rustc
+          # Set installation prefix
+          PREFIX="$(brew --prefix)/Cellar/matchy/${VERSION_NUM}"
+          mkdir -p "$PREFIX"
           
-          brew install --build-bottle --ignore-dependencies sethhall/matchy/matchy
+          # Build CLI and Rust library
+          cargo install --locked --path . --root "$PREFIX"
           
-          # Generate the bottle using tap syntax
+          # Build C library with cargo-c
+          cargo cinstall --release --prefix "$PREFIX" --libdir "$PREFIX/lib" --includedir "$PREFIX/include"
+          
+          # Create Homebrew receipt so it knows the package is installed
+          mkdir -p "$PREFIX/.brew"
+          echo "$VERSION_NUM" > "$PREFIX/.brew/matchy.rb"
+          
+          # Link to Homebrew
+          brew link matchy
+
+      - name: Generate bottle
+        run: |
+          # Now generate the bottle from the installed package
           brew bottle --no-rebuild --json sethhall/matchy/matchy
 
       - name: Upload bottle artifact
