@@ -37,7 +37,8 @@ jobs:
 
       - name: Tap the repository
         run: |
-          # Tap this repository so Homebrew recognizes it as a proper tap
+          # Remove any existing tap and tap from local checkout
+          brew untap sethhall/matchy 2>/dev/null || true
           brew tap sethhall/matchy ${{ github.workspace }}
 
       - name: Install Rust (for building)
