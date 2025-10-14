@@ -15,15 +15,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # macOS Apple Silicon
-          - os: macos-15
-            runner: macos-15
-            arch: arm64
-          # macOS Intel
-          - os: macos-14
-            runner: macos-14-large
-            arch: x86_64
-          # Linux
+          # Linux only - macOS runners are expensive
           - os: ubuntu-latest
             runner: ubuntu-latest
             arch: x86_64
