@@ -6,9 +6,40 @@ Matchy combines IP address lookups, exact string matching, and glob pattern matc
 
 ## Installation
 
+### Quick Install
+
 ```bash
-brew install sethhall/matchy/matchy
+# Tap and install in one command
+brew install matchylabs/matchy/matchy
 ```
+
+### Or tap first
+
+```bash
+# Add the tap
+brew tap matchylabs/matchy
+
+# Install matchy
+brew install matchy
+```
+
+This installs:
+- `matchy` CLI binary
+- `libmatchy` static and dynamic libraries  
+- C headers in `$(brew --prefix)/include/matchy/`
+- pkg-config file for easy linking
+
+### Install HEAD
+
+To install the latest development version:
+
+```bash
+brew install --HEAD matchy
+```
+
+## Usage
+
+See the [main repository](https://github.com/sethhall/matchy) for CLI and C API usage examples.
 
 ## Development
 

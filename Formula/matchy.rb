@@ -1,42 +1,25 @@
 class Matchy < Formula
-  desc "Fast database for IP address and string matching with rich data storage"
+  desc "Fast database for IP address and pattern matching with rich data storage"
   homepage "https://github.com/sethhall/matchy"
-  url "https://github.com/sethhall/matchy/archive/refs/tags/v0.5.2.tar.gz"
-  sha256 "e4f4ecd0ddba8eb99693a3972259bf2a1f577de3f2dc214484efd036823d9e49"
+  url "https://github.com/sethhall/matchy/archive/refs/tags/v1.2.2.tar.gz"
+  sha256 "2152571d96e47b9cd97bb48e3b38344cb8ccd8e546bf9d46a6e79aa9e1cabe9c"
   license "BSD-2-Clause"
   head "https://github.com/sethhall/matchy.git", branch: "main"
 
   depends_on "rust" => :build
-  depends_on "cbindgen" => :build
+  depends_on "cargo-c" => :build
 
   def install
-    # Build the Rust library and CLI tool
-    system "cargo", "install", *std_cargo_args
+    # Build and install the CLI binary
+    system "cargo", "install", "--locked",
+           "--path", "crates/matchy",
+           "--root", prefix,
+           "--features", "cli"
 
-    # Only build C library if not building a bottle (cargo-c has complex dependencies)
-    return if build.bottle?
-
-    # Build the C library using cargo-c
-    # First check if cargo-c is installed, if not install it
-    cargo_list = `cargo install --list`
-    unless cargo_list.include?("cargo-capi") || cargo_list.include?("cargo-c")
-      system "cargo", "install", "cargo-c"
-    end
-
-    # Install C library and headers using cargo-c
-    system "cargo", "cinstall", "--release",
+    # Build and install the C library using cargo-c
+    system "cargo", "cinstall", "--release", "--locked",
            "--prefix", prefix,
-           "--libdir", lib,
-           "--includedir", include
-
-    # cargo-c should install maxminddb.h via the capi.install.include config
-    # but let's ensure it's there
-    unless (include/"matchy/maxminddb.h").exist?
-      odie "maxminddb.h was not installed by cargo-c" if build.stable?
-    end
-
-    # Install pkg-config file for easy linking (should be done by cargo-c)
-    (lib/"pkgconfig").mkpath unless (lib/"pkgconfig").exist?
+           "--manifest-path", "crates/matchy/Cargo.toml"
   end
 
   test do
