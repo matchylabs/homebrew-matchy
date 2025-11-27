@@ -1,8 +1,8 @@
 class Matchy < Formula
   desc "Fast database for IP address and pattern matching with rich data storage"
   homepage "https://github.com/sethhall/matchy"
-  url "https://github.com/sethhall/matchy/archive/refs/tags/v1.2.2.tar.gz"
-  sha256 "2152571d96e47b9cd97bb48e3b38344cb8ccd8e546bf9d46a6e79aa9e1cabe9c"
+  url "https://github.com/sethhall/matchy.git", branch: "main"
+  version "1.2.2-dev"
   license "BSD-2-Clause"
   head "https://github.com/sethhall/matchy.git", branch: "main"
 
@@ -11,15 +11,14 @@ class Matchy < Formula
 
   def install
     # Build and install the CLI binary
-    system "cargo", "install", "--locked",
-           "--path", "crates/matchy",
+    system "cargo", "install",
+           "--path", ".",
            "--root", prefix,
            "--features", "cli"
 
     # Build and install the C library using cargo-c
-    system "cargo", "cinstall", "--release", "--locked",
-           "--prefix", prefix,
-           "--manifest-path", "crates/matchy/Cargo.toml"
+    system "cargo", "cinstall", "--release",
+           "--prefix", prefix
   end
 
   test do
