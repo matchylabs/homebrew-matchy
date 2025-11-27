@@ -30,8 +30,8 @@ jobs:
       - name: Tap the repository
         run: |
           # Remove any existing tap and tap from local checkout
-          brew untap sethhall/matchy 2>/dev/null || true
-          brew tap sethhall/matchy ${{ github.workspace }}
+          brew untap matchylabs/matchy 2>/dev/null || true
+          brew tap matchylabs/matchy ${{ github.workspace }}
 
 
       - name: Update formula URL to use the specified version
@@ -58,12 +58,12 @@ jobs:
         run: |
           # Just use normal brew install with bottle building
           # Homebrew will download Rust bottles (fast), not build from source
-          brew install --build-bottle sethhall/matchy/matchy
+          brew install --build-bottle matchylabs/matchy/matchy
 
       - name: Generate bottle
         run: |
           # Now generate the bottle from the installed package
-          brew bottle --no-rebuild --json sethhall/matchy/matchy
+          brew bottle --no-rebuild --json matchylabs/matchy/matchy
 
       - name: Upload bottle artifact
         uses: actions/upload-artifact@v4
@@ -108,7 +108,7 @@ jobs:
           # Initialize bottle block
           echo 'BOTTLE_BLOCK<<EOF' >> $GITHUB_OUTPUT
           echo '  bottle do' >> $GITHUB_OUTPUT
-          echo '    root_url "https://github.com/sethhall/homebrew-matchy/releases/download/${{ github.event.inputs.version }}"' >> $GITHUB_OUTPUT
+          echo '    root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/${{ github.event.inputs.version }}"' >> $GITHUB_OUTPUT
           
           # Process each JSON file
           for json_file in *.bottle.json; do
