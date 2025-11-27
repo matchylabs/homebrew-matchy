@@ -6,7 +6,7 @@ class JqMatchy < Formula
   license "BSD-2-Clause"
   head "https://github.com/matchylabs/matchy-jq-plugin.git", branch: "main"
 
-  depends_on "matchy"
+  depends_on "matchylabs/matchy/matchy"
   depends_on "jq"
 
   def install
@@ -25,7 +25,7 @@ class JqMatchy < Formula
       *.example.com {"pattern": "match"}
     EOS
 
-    system Formula["matchy"].bin/"matchy", "build", 
+    system Formula["matchylabs/matchy/matchy"].bin/"matchy", "build",
            "--input", "test_data.txt", 
            "--output", "test.mxy"
     assert_predicate testpath/"test.mxy", :exist?
