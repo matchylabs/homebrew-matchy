@@ -10,15 +10,17 @@ class Matchy < Formula
   depends_on "cargo-c" => :build
 
   def install
-    # Build and install the CLI binary
+    # Build and install the CLI binary from workspace crate
     system "cargo", "install",
-           "--path", ".",
+           "--path", "crates/matchy",
            "--root", prefix,
            "--features", "cli"
 
-    # Build and install the C library using cargo-c
-    system "cargo", "cinstall", "--release",
-           "--prefix", prefix
+    # Build and install the C library using cargo-c from workspace crate
+    Dir.chdir("crates/matchy") do
+      system "cargo", "cinstall", "--release",
+             "--prefix", prefix
+    end
   end
 
   test do
