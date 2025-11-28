@@ -1,10 +1,10 @@
 class Matchy < Formula
   desc "Fast database for IP address and pattern matching with rich data storage"
-  homepage "https://github.com/sethhall/matchy"
-  url "https://github.com/sethhall/matchy.git", branch: "main"
+  homepage "https://github.com/matchylabs/matchy"
+  url "https://github.com/matchylabs/matchy.git", branch: "main"
   version "1.2.2-dev"
   license "BSD-2-Clause"
-  head "https://github.com/sethhall/matchy.git", branch: "main"
+  head "https://github.com/matchylabs/matchy.git", branch: "main"
 
   bottle do
     root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/v1.2.2-dev"
