@@ -29,6 +29,8 @@ This installs:
 - C headers in `$(brew --prefix)/include/matchy/`
 - pkg-config file for easy linking
 
+**Note**: Pre-built bottles (binaries) are available for macOS ARM64 (Apple Silicon). Installation is fast - no compilation required!
+
 ### Install HEAD
 
 To install the latest development version:
@@ -67,6 +69,10 @@ git add Formula/matchy.rb
 git commit -m "matchy X.Y.Z"
 git push origin main
 ```
+
+### Building Bottles
+
+For detailed instructions on building and publishing bottles (pre-built binaries), see `WARP.md`.
 
 ## Documentation
 

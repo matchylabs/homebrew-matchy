@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Repository Overview
 
-This is a Homebrew tap repository for [Matchy](https://github.com/sethhall/matchy), a high-performance database for IP address and string matching. The tap provides formula definitions for installing Matchy via Homebrew package manager on macOS and Linux.
+This is a Homebrew tap repository for [Matchy](https://github.com/matchylabs/matchy), a high-performance database for IP address and string matching. The tap provides formula definitions for installing Matchy via Homebrew package manager on macOS and Linux.
 
 **Repository Structure:**
 - `Formula/matchy.rb` - Homebrew formula definition for the Matchy package
@@ -47,7 +47,7 @@ When updating the formula for a new Matchy release:
 ```bash
 # 1. Update version and URL in Formula/matchy.rb
 # 2. Calculate SHA256 checksum
-curl -sL https://github.com/sethhall/matchy/archive/refs/tags/vX.Y.Z.tar.gz | shasum -a 256
+curl -sL https://github.com/matchylabs/matchy/archive/refs/tags/vX.Y.Z.tar.gz | shasum -a 256
 
 # 3. Update sha256 field in formula
 # 4. Test the formula
@@ -65,10 +65,10 @@ Users install the tap with:
 
 ```bash
 # One-step install
-brew install sethhall/matchy/matchy
+brew install matchylabs/matchy/matchy
 
 # Or tap first, then install
-brew tap sethhall/matchy
+brew tap matchylabs/matchy
 brew install matchy
 ```
 
@@ -160,8 +160,79 @@ If `maxminddb.h` is missing after build, check:
 - Matchy repo's `Cargo.toml` has correct `capi.header` configuration
 - `cargo-c` version is compatible (update with `cargo install cargo-c --force`)
 
+## Building and Publishing Bottles
+
+Bottles are pre-built binaries that speed up installation by avoiding compilation.
+
+### Creating a New Bottle
+
+```bash
+# 1. Remove any existing bottle block from Formula/matchy.rb temporarily
+
+# 2. Commit and push the formula without bottle block
+git add Formula/matchy.rb
+git commit -m "Prepare for bottle build"
+git push origin main
+
+# 3. Update local tap and build with --build-bottle flag
+brew update
+brew uninstall matchy 2>/dev/null || true
+brew install --build-bottle matchylabs/matchy/matchy
+
+# 4. Create the bottle with the correct root URL
+brew bottle --json --root-url=https://github.com/matchylabs/homebrew-matchy/releases/download/vX.Y.Z matchylabs/matchy/matchy
+
+# This creates two files:
+# - matchy--X.Y.Z.arm64_tahoe.bottle.N.tar.gz (the bottle)
+# - matchy--X.Y.Z.arm64_tahoe.bottle.json (metadata)
+
+# 5. Rename bottle to use single dash (Homebrew expects this format)
+cp matchy--X.Y.Z.arm64_tahoe.bottle.N.tar.gz matchy-X.Y.Z.arm64_tahoe.bottle.N.tar.gz
+
+# 6. Create GitHub release and upload bottle
+gh release create vX.Y.Z \
+  --title "Bottle vX.Y.Z" \
+  --notes "Pre-built binary bottle for Matchy vX.Y.Z (macOS ARM64)" \
+  matchy-X.Y.Z.arm64_tahoe.bottle.N.tar.gz
+
+# Or upload to existing release:
+gh release upload vX.Y.Z matchy-X.Y.Z.arm64_tahoe.bottle.N.tar.gz --clobber
+
+# 7. Add bottle block to formula (copy from brew bottle output)
+# The output shows the exact bottle block to add, e.g.:
+#   bottle do
+#     root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/vX.Y.Z"
+#     rebuild N
+#     sha256 cellar: :any, arm64_tahoe: "abc123..."
+#   end
+
+# 8. Commit and push updated formula with bottle block
+git add Formula/matchy.rb
+git commit -m "Add bottle for vX.Y.Z (arm64_tahoe)"
+git push origin main
+
+# 9. Test bottle installation
+brew uninstall matchy
+brew update
+brew install matchylabs/matchy/matchy
+```
+
+### Bottle Platform Tags
+
+- `arm64_tahoe` = Apple Silicon on macOS 15 (Sequoia)
+- `arm64_ventura` = Apple Silicon on macOS 13 (Ventura)
+- `x86_64_tahoe` = Intel on macOS 15
+
+Homebrew automatically selects the appropriate bottle for the user's platform.
+
+### Bottle Naming Convention
+
+Bottle files must use **single dash** format: `matchy-X.Y.Z.platform.bottle.N.tar.gz`
+
+Note: `brew bottle` creates files with double dashes (`matchy--X.Y.Z`), but Homebrew's download logic expects single dash. Always rename before uploading.
+
 ## Related Repositories
 
-- **Main Project**: [github.com/sethhall/matchy](https://github.com/sethhall/matchy) - Rust source code
+- **Main Project**: [github.com/matchylabs/matchy](https://github.com/matchylabs/matchy) - Rust source code
 - **Documentation**: [docs.rs/matchy](https://docs.rs/matchy) - API documentation
-- **Examples**: [matchy/examples](https://github.com/sethhall/matchy/tree/main/examples) - Usage examples
+- **Examples**: [matchy/examples](https://github.com/matchylabs/matchy/tree/main/examples) - Usage examples
