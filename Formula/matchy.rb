@@ -6,8 +6,15 @@ class Matchy < Formula
   license "BSD-2-Clause"
   head "https://github.com/sethhall/matchy.git", branch: "main"
 
+  bottle do
+    rebuild 1
+    root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/v1.2.2-dev"
+    sha256 cellar: :any, arm64_tahoe: "2eb2ae531196644bfad5db7fbba23c50deb7e2aa9e54003d1386761c7553c34d"
+  end
+
   depends_on "rust" => :build
   depends_on "cargo-c" => :build
+  depends_on "jq" => :optional
 
   def install
     # Build and install the CLI binary from workspace crate
@@ -20,6 +27,21 @@ class Matchy < Formula
     Dir.chdir("crates/matchy") do
       system "cargo", "cinstall", "--release",
              "--prefix", prefix
+    end
+
+    # Build and install jq plugin if jq is available
+    if build.with?("jq") || which("jq")
+      Dir.chdir("jq-plugin") do
+        # Build plugin with static linking
+        system "make", "MATCHY_ROOT=..", "PREFIX=#{prefix}"
+        
+        # Install to jq plugins directory
+        (lib/"jq").mkpath
+        system "make", "install", "MATCHY_ROOT=..", "PREFIX=#{prefix}", "PLUGIN_DIR=#{lib}/jq"
+      end
+      
+      ohai "jq plugin installed to #{lib}/jq/"
+      ohai "Use with: jq 'import \"jq_matchy\" as m; ...'"
     end
   end
 
@@ -115,5 +137,18 @@ class Matchy < Formula
 
     system ENV.cc, "test.c", "-I#{include}", "-L#{lib}", "-lmatchy", "-o", "test"
     system "./test"
+
+    # Test jq plugin if it was installed
+    if (lib/"jq/jq_matchy.dylib").exist? || (lib/"jq/jq_matchy.so").exist?
+      # Build test database with matchy CLI
+      system bin/"matchy", "build", "--input", "test_data.txt", "--output", "jq_test.mxy"
+      
+      # Test jq plugin
+      output = shell_output("echo '\"8.8.8.8\"' | jq 'import \"jq_matchy\" as m; . | m::match(\"jq_test.mxy\")' 2>&1")
+      assert_match(/true/, output)
+      
+      output = shell_output("echo '\"subdomain.example.com\"' | jq 'import \"jq_matchy\" as m; . | m::query(\"jq_test.mxy\")' 2>&1")
+      assert_match(/\{/, output)  # Should return JSON object
+    end
   end
 end
