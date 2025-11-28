@@ -7,7 +7,6 @@ class Matchy < Formula
   head "https://github.com/sethhall/matchy.git", branch: "main"
 
   bottle do
-    rebuild 1
     root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/v1.2.2-dev"
     sha256 cellar: :any, arm64_tahoe: "2eb2ae531196644bfad5db7fbba23c50deb7e2aa9e54003d1386761c7553c34d"
   end
