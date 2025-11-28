@@ -6,6 +6,12 @@ class Matchy < Formula
   license "BSD-2-Clause"
   head "https://github.com/matchylabs/matchy.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/v1.2.2-dev"
+    rebuild 1
+    sha256 cellar: :any, arm64_tahoe: "ab0555f6c6160febd72e77541f8df145d763c66be709d7f97ec1bdf37a479765"
+  end
+
   depends_on "rust" => :build
   depends_on "cargo-c" => :build
 
