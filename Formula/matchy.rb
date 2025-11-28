@@ -8,7 +8,7 @@ class Matchy < Formula
 
   bottle do
     root_url "https://github.com/matchylabs/homebrew-matchy/releases/download/v1.2.2-dev"
-    sha256 cellar: :any, arm64_tahoe: "2eb2ae531196644bfad5db7fbba23c50deb7e2aa9e54003d1386761c7553c34d"
+    sha256 cellar: :any, arm64_tahoe: "PLACEHOLDER"
   end
 
   depends_on "rust" => :build
